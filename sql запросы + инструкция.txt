@@ -1,0 +1,103 @@
+﻿в phpadmin -> выбрать базу где таблицы -> SQL -> вставить код в окошко
+нажать выполнить
+
+№1 для корректного отображение "последние преступление"
+
+ALTER TABLE `wanted` CHANGE `insert_time` `insert_time` TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+
+
+№2 для предотвращение двойного зачисление  
+
+CREATE TABLE IF NOT EXISTS `freekassa_payments` (
+  `id` int(10) NOT NULL AUTO_INCREMENT,
+  `freekassaId` varchar(255) NOT NULL,
+  `account` varchar(255) NOT NULL,
+  `sum` float NOT NULL,
+  `itemsCount` int(11) NOT NULL DEFAULT '1',
+  `dateCreate` datetime NOT NULL,
+  `dateComplete` datetime DEFAULT NULL,
+  `status` tinyint(4) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8;
+
+
+№3 переименовать таблицы в MySQL 'LKpromo' и 'LKlogs' в 'lk_promo' и 'lk_logs'
+SQL запрос для этого:
+RENAME TABLE `LKpromo` TO `lk_promo`, `LKlogs` TO `lk_logs`;
+
+
+№ 4 Настрайка происходит в 3х файлах
+
+steamauth\SteamConfig.php \\ Найстройка авторизаии через стим
+dbcon.php \\ нужно ввести данные MySQL, выставить свои цены, в $adminmenu в ковычках указать свой SteamID
+pay\config.php \\ тут настраиваться фрикасса. (ID магазина, два секретных ключа (получаются на сайте) и MySQL)
+
+
+Найстройка на сайте FreeKassa 
+
+URL оповещения: http://вашсайт.ру/pay/core.php метод POST
+URL возврата в случае успеха: http://вашсайт.ру/pay/success.php метод GET
+URL возврата в случае неудачи: http://вашсай.ру/pay/fail.php метод GET
+Подтвержение платежа: Требуется
+
+-----------------------
+Если пользователь неправильно введут 5 раз промокод, его steamid сменить на 'Abused Promo'
+-----------------------
+
+У кого нету таблиц 'LKpromo' и 'LKlogs' выполняем sql запрос для создания таблиц 'lk_logs' и 'lk_promo'
+
+
+CREATE TABLE `lk_logs` (
+  `logid` int(11) NOT NULL AUTO_INCREMENT,
+  `user` varchar(64) DEFAULT NULL,
+  `action` varchar(255) DEFAULT NULL,
+  `date_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`logid`),
+  UNIQUE KEY `logid` (`logid`) USING BTREE,
+  KEY `logid_2` (`logid`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1;
+
+
+CREATE TABLE `lk_promo` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `code` varchar(64) DEFAULT NULL,
+  `amount` varchar(64) DEFAULT NULL,
+  `type` varchar(255) DEFAULT NULL,
+  `author` varchar(64) DEFAULT NULL,
+  `insert_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `logid` (`id`) USING BTREE,
+  KEY `logid_2` (`id`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=latin1 ROW_FORMAT=COMPACT;
+
+
+---------
+
+В папке "backend" находятся php скрипты, если планируйте не пользоваться какой-либо функцией удалите с web-сервера
+
+activatePromo.php - отвечает за ПромоКоды
+transfer.php - переводит DonatMoney
+updateMoney.php - покупка денег на сервере
+updateName.php - смена имя в игре
+updateVip.php - покупка Вип
+
+Удалить их нужно потому что можно будет произвести покупку методом запроса POST. Это не уязвимость! 
+Пользователь создает такой же запрос, но через интерфейс личного кабинета. Т.е. знающий пользователь сможет приобрести услуги изходя из цен в конфиге, 
+даже если вы в index.php удалили форму покупки. 
+
+givePoints.php - выдает ДонатМони через админ меню 
+generatePromo.php - генирирует промокоды и записывает в БД 
+
+Эти файлы необязательно удалять, т.к. скрип примет запросы только от STEAMID указанных в параметре $adminmenu
+
+----------
+
+Некоторые говорят что donat_time на сервере работает некоректно.
+Для подстраховки вы можете использовать cron задачу (cron.php)
+
+Команда:
+wget -O - -q -t 1 'http://вашсат.рф/cron.php?cron=Jgnft65ktbh65mb56g34' - после равно указывается крон пароль $cronpass
+
+Как установить планировщик (cron) уточняйте у тех.поддержки, где арендуете вебхост.
+
