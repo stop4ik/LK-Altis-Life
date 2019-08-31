@@ -6,5 +6,5 @@ $stmt = $pdo->prepare('UPDATE `players` SET `donorlevel` = "0", donat_time = NUL
 $stmt->execute();
 	die('Успех');
 }
-exit( 'Неверный ключ-крон' );
+exit( 'Неверный пароль' );
 ?>
